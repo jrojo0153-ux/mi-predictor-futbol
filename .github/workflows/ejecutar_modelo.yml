@@ -3,9 +3,8 @@ name: Pipeline de Prediccion de Futbol Autonomo
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Permite activar el pipeline manualmente desde la interfaz de GitHub
+  workflow_dispatch:
 
-# Garantiza que el bot de GitHub Actions tenga permisos para guardar los cambios en el repositorio
 permissions:
   contents: write
 
@@ -14,36 +13,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Clonar el repositorio en el entorno virtual de Ubuntu
     - name: Clonar repositorio
       uses: actions/checkout@v4
 
-    # 2. Configurar el entorno de Python
     - name: Configurar Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    # 3. Instalar dependencias necesarias (scikit-learn, pandas, requests, etc.)
     - name: Instalar librerías de Machine Learning
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # 4. Ejecutar el script acoplando de forma segura tu clave de cuotas
     - name: Ejecutar script predictor.py con APIs y MLOps
       env:
         ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
       run: |
         python predictor.py
 
-    # 5. Guardar de forma autónoma el reporte de predicciones y la base de datos evolutiva (.csv)
-    - name: Persistir reporte de predicciones y dataset evolutivo
+    # Persiste los tres archivos del ecosistema sin borrar ninguno
+    - name: Guardar Reporte, Dataset y Log de Métricas
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action Bot"
-        # Aseguramos el seguimiento de ambos archivos clave
-        git add predicciones_reporte.txt dataset_historico.csv
-        # Hace el commit y push únicamente si hubo cambios reales en los datos
-        git diff --quiet && git diff --staged --quiet || git commit -m "Auto: Re-entrenamiento del modelo y actualización de métricas en vivo"
+        git add predicciones_reporte.txt dataset_historico.csv metricas_rendimiento.csv
+        git diff --quiet && git diff --staged --quiet || git commit -m "Auto: Sincronización del reporte diario, datos de ESPN y métricas de error"
         git push
