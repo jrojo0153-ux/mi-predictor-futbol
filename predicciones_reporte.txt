@@ -1,0 +1,13 @@
+=== RESULTADOS DE LAS PREDICCIONES ===
+
+Partido: Argentina vs Brasil (Neutral: 1)
+  -> Predicción Random Forest: 1 - 0
+  -> Predicción SVR: 2 - 1
+
+Partido: Colombia vs Uruguay (Neutral: 0)
+  -> Predicción Random Forest: 1 - 1
+  -> Predicción SVR: 2 - 1
+
+Partido: Chile vs Ecuador (Neutral: 0)
+  -> Predicción Random Forest: 3 - 0
+  -> Predicción SVR: 2 - 1
