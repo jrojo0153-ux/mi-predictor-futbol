@@ -2,26 +2,27 @@ import os
 import requests
 import pandas as pd
 import numpy as np
+import datetime
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
 # =========================================================================
-# CONFIGURACIÓN COMPLETA - PIPELINE AUTÓNOMO CON AUTOENTRENAMIENTO
+# CONFIGURACIÓN COMPLETA - INFRAESTRUCTURA MLOps (BGLogicSolutions)
 # =========================================================================
 ODDS_API_KEY = os.getenv("ODDS_API_KEY", "")
-SPORT_KEY = "soccer"  
+SPORT_KEY = "soccer"  # Forzado a fútbol global para evitar mezclas con la MLB
 REGIONS = "us,eu"                    
 MARKETS = "h2h"                      
 CSV_HISTORICO = "dataset_historico.csv"
+CSV_METRICAS = "metricas_rendimiento.csv"
 
 def inicializar_o_cargar_historico():
-    """Carga el dataset evolutivo o lo crea desde cero si es la primera corrida"""
+    """Carga el dataset evolutivo o lo inicializa con los datos semilla"""
     if os.path.exists(CSV_HISTORICO):
-        print(f"-> Cargando dataset evolutivo desde {CSV_HISTORICO}...")
         return pd.read_csv(CSV_HISTORICO)
     else:
-        print("-> No se encontró histórico previo. Inicializando base de datos semilla...")
         data_semilla = {
             'home_team': ['México', 'Estados Unidos', 'Argentina', 'Brasil', 'Colombia', 'España', 'Alemania', 'México', 'Francia', 'Argentina'],
             'away_team': ['Estados Unidos', 'Colombia', 'Brasil', 'México', 'Alemania', 'Brasil', 'Francia', 'Argentina', 'Chile', 'Ecuador'],
@@ -34,20 +35,16 @@ def inicializar_o_cargar_historico():
         return df
 
 def actualizar_historico_con_resultados_reales(df_historico):
-    """Consulta ESPN para buscar partidos finalizados de selecciones y los añade al dataset"""
-    print("-> Buscando resultados recientes en ESPN para autoentrenamiento...")
+    """Consulta ESPN para buscar partidos finalizados y sumarlos a la base de conocimiento"""
     url = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.friendly/scoreboard"
     nuevas_filas = []
-    
     try:
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             data = response.json()
             for event in data.get('events', []):
-                # Validar si el partido YA TERMINÓ
                 status = event.get('status', {}).get('type', {}).get('completed', False)
-                if not status:
-                    continue # Saltarse partidos en vivo o futuros
+                if not status: continue  # Solo partidos terminados
                 
                 competitions = event.get('competitions', [])
                 if not competitions: continue
@@ -55,7 +52,7 @@ def actualizar_historico_con_resultados_reales(df_historico):
                 
                 try:
                     home_data = next(c for c in competitors if c.get('homeAway') == 'home')
-                    away_data = next(c = next(c for c in competitors if c.get('homeAway') == 'away'))
+                    away_data = next(c for c in competitors if c.get('homeAway') == 'away')
                     
                     home_name = home_data['team']['displayName']
                     away_name = away_data['team']['displayName']
@@ -63,7 +60,7 @@ def actualizar_historico_con_resultados_reales(df_historico):
                     away_score = int(away_data['score'])
                     neutral = 1 if competitions[0].get('neutralGames', False) else 0
                     
-                    # Evitar duplicados: verificar si este partido exacto con este marcador ya existe
+                    # Evitar duplicar registros ya existentes
                     duplicado = df_historico[
                         (df_historico['home_team'] == home_name) & 
                         (df_historico['away_team'] == away_name) & 
@@ -72,39 +69,53 @@ def actualizar_historico_con_resultados_reales(df_historico):
                     ]
                     
                     if duplicado.empty:
-                        print(f"   [Nuevo Dato Real Encontrado]: {home_name} {home_score} - {away_score} {away_name}")
+                        print(f"[NUEVO DATO ENCONTRADO]: {home_name} {home_score} - {away_score} {away_name}")
                         nuevas_filas.append({
                             'home_team': home_name, 'away_team': away_name,
                             'home_score': home_score, 'away_score': away_score,
                             'neutral': neutral
                         })
-                except Exception:
-                    continue
+                except Exception: continue
                     
             if nuevas_filas:
                 df_nuevos_datos = pd.DataFrame(nuevas_filas)
                 df_actualizado = pd.concat([df_historico, df_nuevos_datos], ignore_index=True)
                 df_actualizado.to_csv(CSV_HISTORICO, index=False)
-                print(f"-> ¡Autoentrenamiento exitoso! Se añadieron {len(nuevas_filas)} nuevos ejemplos al histórico.")
                 return df_actualizado
-            else:
-                print("-> No se detectaron partidos finalizados nuevos que no estuvieran ya guardados.")
         return df_historico
     except Exception as e:
-        print(f"-> Saltando actualización de histórico por error de red: {e}")
+        print(f"[MLOps Error] No se pudo actualizar el histórico: {e}")
         return df_historico
 
+def registrar_metricas_auditoria(df, mae_h, rmse_h, mae_a, rmse_a):
+    """Guarda en un archivo log de control el comportamiento de los errores del modelo"""
+    fecha_actual = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    nuevas_metricas = {
+        "fecha": [fecha_actual],
+        "partidos_totales": [len(df)],
+        "mae_goles_local": [mae_h],
+        "rmse_goles_local": [rmse_h],
+        "mae_goles_vis": [mae_a],
+        "rmse_goles_vis": [rmse_a]
+    }
+    df_nuevas = pd.DataFrame(nuevas_metricas)
+    if os.path.exists(CSV_METRICAS):
+        df_log = pd.read_csv(CSV_METRICAS)
+        df_log = pd.concat([df_log, df_nuevas], ignore_index=True)
+    else:
+        df_log = df_nuevas
+    df_log.to_csv(CSV_METRICAS, index=False)
+
 def obtener_partidos_espn():
-    """Extrae la cartelera de los próximos partidos amistosos"""
+    """Extrae partidos agendados (futuros) desde el scoreboard de ESPN"""
     url = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.friendly/scoreboard"
     try:
         response = requests.get(url, timeout=10)
         data = response.json()
         partidos = []
         for event in data.get('events', []):
-            # Solo predecir partidos que NO han terminado
             status = event.get('status', {}).get('type', {}).get('completed', False)
-            if status: continue
+            if status: continue  # Saltar partidos cerrados
             
             competitions = event.get('competitions', [])
             if not competitions: continue
@@ -116,11 +127,10 @@ def obtener_partidos_espn():
                 partidos.append({"local": home, "visitante": away, "neutral": neutral})
             except StopIteration: continue
         return partidos
-    except Exception:
-        return []
+    except Exception: return []
 
 def obtener_cuotas_the_odds():
-    """Extrae las cuotas vigentes globales de fútbol"""
+    """Consulta las líneas de dinero activas de fútbol global"""
     if not ODDS_API_KEY: return {}
     url = f"https://api.the-odds-api.com/v4/sports/{SPORT_KEY}/odds/"
     params = {'apiKey': ODDS_API_KEY, 'regions': REGIONS, 'markets': MARKETS, 'oddsFormat': 'decimal'}
@@ -159,35 +169,34 @@ def buscar_cuota_flexible(local, visitante, diccionario_cuotas):
     return {"cuota_local": "N/D", "cuota_empate": "N/D", "cuota_visitante": "N/D"}
 
 def ejecutar_sistema_prediccion():
-    print("=== [BGLogicSolutions] Pipeline MLOps - Ciclo Continuo ===")
+    print("=== [BGLogicSolutions] Iniciando Pipeline con Aprendizaje y Métricas ===")
 
-    # 1. CARGAR HISTÓRICO Y AUTOENTRENAR CON RESULTADOS REALES DE JUEGOS PASADOS
+    # 1. ACTUALIZAR HISTÓRICO RECOLECTANDO RESULTADOS REALES RECIENTES
     df = inicializar_o_cargar_historico()
     df = actualizar_historico_con_resultados_reales(df)
 
-    # 2. CAPTURAR PRÓXIMOS ENCUENTROS Y CUOTAS
     partidos_nuevos = obtener_partidos_espn()
     cuotas_reales = obtener_cuotas_the_odds()
 
     if not partidos_nuevos:
-        print("-> Sin partidos nuevos en agenda ESPN hoy. Generando reporte simulado.")
+        print("-> Sin partidos en agenda ESPN hoy. Usando cartelera de simulación.")
         partidos_nuevos = [
             {"local": "México", "visitante": "Estados Unidos", "neutral": 1},
-            {"local": "Argentina", "visitante": "Brasil", "neutral": 1}
+            {"local": "Argentina", "visitante": "Brasil", "neutral": 1},
+            {"local": "Francia", "visitante": "Alemania", "neutral": 0}
         ]
 
-    # 3. FIT ENCODER INTEGRANDO TODOS LOS EQUIPOS NUEVOS Y PASADOS
+    # 2. ENCODER DE VARIABLES CATEGÓRICAS
     le = LabelEncoder()
     todos_los_equipos = list(set(
         df['home_team'].tolist() + df['away_team'].tolist() + 
         [p['local'] for p in partidos_nuevos] + [p['visitante'] for p in partidos_nuevos]
     ))
     le.fit(todos_los_equipos)
-    
     df['home_encoded'] = le.transform(df['home_team'])
     df['away_encoded'] = le.transform(df['away_team'])
 
-    # 4. RE-ENTRENAMIENTO DINÁMICO DE LOS MODELOS REPLICADOS
+    # 3. CONSTRUCCIÓN DE MATRICES Y FIT DE ALGORITMOS
     X = df[['home_encoded', 'away_encoded', 'neutral']]
     
     rf_home = RandomForestRegressor(n_estimators=100, random_state=42).fit(X, df['home_score'])
@@ -195,10 +204,23 @@ def ejecutar_sistema_prediccion():
     svr_home = SVR(kernel='rbf', C=1.0, epsilon=0.2).fit(X, df['home_score'])
     svr_away = SVR(kernel='rbf', C=1.0, epsilon=0.2).fit(X, df['away_score'])
 
-    # 5. GENERACIÓN DEL REPORTE
+    # 4. SISTEMA DE AUTOCONTROL Y MEDICIÓN DE MÉTRICAS (Loss Evaluation)
+    pred_rf_h = rf_home.predict(X)
+    pred_rf_a = rf_away.predict(X)
+    
+    mae_h = mean_absolute_error(df['home_score'], pred_rf_h)
+    rmse_h = root_mean_squared_error(df['home_score'], pred_rf_h)
+    mae_a = mean_absolute_error(df['away_score'], pred_rf_a)
+    rmse_a = root_mean_squared_error(df['away_score'], pred_rf_a)
+
+    # Guardar las métricas de error calculadas en esta iteración para auditar la evolución
+    registrar_metricas_auditoria(df, mae_h, rmse_h, mae_a, rmse_a)
+    print(f"-> Métricas calculadas sobre histórico de {len(df)} filas. Log de rendimiento actualizado.")
+
+    # 5. GENERACIÓN DEL REPORTE DE PREDICCIONES (Se mantiene guardándose en tu archivo TXT)
     lineas_reporte = [
         "==========================================================",
-        " REPORTE MLOps: MODELOS IA EVOLUTIVOS (MUNDIAL 2026)      ",
+        " REPORTE CONSOLIDADO: AMISTOSOS INTERNACIONALES (IA)     ",
         f" Volumen del Dataset de Entrenamiento: {len(df)} partidos ",
         "==========================================================\n"
     ]
@@ -227,7 +249,7 @@ def ejecutar_sistema_prediccion():
 
     with open("predicciones_reporte.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(lineas_reporte))
-    print("-> ¡Pipeline finalizado! Dataset e Inferencia actualizados.")
+    print("-> Archivo 'predicciones_reporte.txt' y registros MLOps guardados con éxito.")
 
 if __name__ == "__main__":
     ejecutar_sistema_prediccion()
