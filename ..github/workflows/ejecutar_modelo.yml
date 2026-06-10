@@ -1,0 +1,44 @@
+name: Pipeline de Prediccion de Futbol Autonomo
+
+# Controla cuándo se ejecuta el flujo de trabajo
+on:
+  push:
+    branches: [ "main" ]  # Se ejecuta cuando subes cambios a la rama principal
+  schedule:
+    - cron: '0 0 * * 1'   # Automatización: Se ejecuta TODOS los lunes a las 00:00 UTC
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Descargar el código del repositorio en la máquina virtual
+    - name: Clonar repositorio
+      uses: actions/checkout@v4
+
+    # 2. Configurar el entorno con Python
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    # 3. Instalar dependencias necesarias
+    - name: Instalar librerías de Machine Learning
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # 4. Ejecutar el modelo predictivo
+    - name: Ejecutar script predictor.py
+      run: |
+        python predictor.py
+
+    # 5. Guardar y subir el reporte generado de vuelta al repositorio
+    - name: Persistir reporte de predicciones
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action Bot"
+        git add predicciones_reporte.txt
+        # El condicional evita que falle si no hay cambios en los resultados
+        git diff --quiet && git diff --staged --quiet || git commit -m "Auto: Actualización de predicciones semanales"
+        git push
