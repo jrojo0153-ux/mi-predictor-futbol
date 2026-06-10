@@ -1,28 +1,9 @@
 ==========================================================
- REPORTE: AMISTOSOS RUMBO AL MUNDIAL 2026 (IA + ODDS)    
+ REPORTE MLOps: MODELOS IA EVOLUTIVOS (MUNDIAL 2026)      
+ Volumen del Dataset de Entrenamiento: 10 partidos 
 ==========================================================
 
-PARTIDO: Philippines vs Myanmar (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 2
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: China vs Thailand (Neutral: No)
-  [Random Forest] Predicción Goles: 0 - 2
-  [SVR Machine]  Predicción Goles: 1 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Cambodia vs Hong Kong (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 2
-  [SVR Machine]  Predicción Goles: 1 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
 PARTIDO: Oman vs Kuwait (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 2
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Indonesia vs Mozambique (Neutral: No)
   [Random Forest] Predicción Goles: 1 - 3
   [SVR Machine]  Predicción Goles: 1 - 2
   [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
@@ -32,82 +13,7 @@ PARTIDO: Bahrain vs Syria (Neutral: No)
   [SVR Machine]  Predicción Goles: 1 - 1
   [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
 -------------------------------------------------------
-PARTIDO: Kyrgyz Republic vs Palestine (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Armenia vs Moldova (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 2
-  [SVR Machine]  Predicción Goles: 0 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Ethiopia vs Malawi (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 0 - 2
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Congo DR vs Chile (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 2
-  [SVR Machine]  Predicción Goles: 1 - 2
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Equatorial Guinea vs Comoros (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 2
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
 PARTIDO: Tanzania vs Rwanda (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Belarus vs Burkina Faso (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 1
-  [SVR Machine]  Predicción Goles: 2 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Angola vs Central African Republic (Neutral: No)
-  [Random Forest] Predicción Goles: 2 - 2
-  [SVR Machine]  Predicción Goles: 2 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Hungary vs Kazakhstan (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 2
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Russia vs Trinidad and Tobago (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Azerbaijan vs San Marino (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 2
-  [SVR Machine]  Predicción Goles: 0 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Togo vs Benin (Neutral: No)
-  [Random Forest] Predicción Goles: 2 - 2
-  [SVR Machine]  Predicción Goles: 2 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Liberia vs Sierra Leone (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Saudi Arabia vs Senegal (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Argentina vs Iceland (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 2
-  [SVR Machine]  Predicción Goles: 1 - 1
-  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
--------------------------------------------------------
-PARTIDO: Iraq vs Venezuela (Neutral: No)
   [Random Forest] Predicción Goles: 1 - 3
   [SVR Machine]  Predicción Goles: 1 - 1
   [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
