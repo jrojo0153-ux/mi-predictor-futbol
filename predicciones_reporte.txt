@@ -1,20 +1,20 @@
 ==========================================================
- REPORTE MLOps: MODELOS IA EVOLUTIVOS (MUNDIAL 2026)      
- Volumen del Dataset de Entrenamiento: 10 partidos 
+ REPORTE CONSOLIDADO: AMISTOSOS INTERNACIONALES (IA)     
+ Volumen del Dataset de Entrenamiento: 29 partidos 
 ==========================================================
 
 PARTIDO: Oman vs Kuwait (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 2
+  [Random Forest] Predicción Goles: 2 - 1
+  [SVR Machine]  Predicción Goles: 1 - 1
   [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
 -------------------------------------------------------
 PARTIDO: Bahrain vs Syria (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 2
+  [Random Forest] Predicción Goles: 1 - 1
   [SVR Machine]  Predicción Goles: 1 - 1
   [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
 -------------------------------------------------------
 PARTIDO: Tanzania vs Rwanda (Neutral: No)
-  [Random Forest] Predicción Goles: 1 - 3
-  [SVR Machine]  Predicción Goles: 1 - 1
+  [Random Forest] Predicción Goles: 2 - 0
+  [SVR Machine]  Predicción Goles: 2 - 0
   [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
 -------------------------------------------------------
