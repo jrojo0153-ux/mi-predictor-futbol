@@ -7,55 +7,44 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
 
 # =========================================================================
-# CONFIGURACIÓN EXACTA PARA PARTIDOS AMISTOSOS RUMBO AL MUNDIAL 2026
+# CONFIGURACIÓN OPTIMIZADA PARA AJUSTE DE CUOTAS
 # =========================================================================
 ODDS_API_KEY = os.getenv("ODDS_API_KEY", "")
-SPORT_KEY = "soccer_international_friendly"  # ID oficial para amistosos internacionales
-REGIONS = "us,eu"                             # Casas de apuestas
-MARKETS = "h2h"                               # Ganador / Empate / Visitante
+# Cambiamos a 'upcoming' para asegurar que la API devuelva cuotas reales de partidos HOY
+SPORT_KEY = "upcoming"  
+REGIONS = "us,eu"                    
+MARKETS = "h2h"                      
 
 def obtener_partidos_espn():
-    """Extrae la cartelera de partidos amistosos internacionales desde la API de ESPN"""
-    print("-> Consultando API de ESPN (Amistosos Internacionales)...")
-    # URL específica para amistosos de selecciones (International Friendly)
+    """Extrae la cartelera actual desde la API de ESPN"""
+    print("-> Consultando API de ESPN...")
     url = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.friendly/scoreboard"
     try:
         response = requests.get(url, timeout=10)
-        response.raise_for_status()
         data = response.json()
         partidos = []
-        
         for event in data.get('events', []):
             competitions = event.get('competitions', [])
-            if not competitions:
-                continue
+            if not competitions: continue
             competitors = competitions[0].get('competitors', [])
-            
             try:
-                # Detectar local y visitante
                 home = next(c['team']['displayName'] for c in competitors if c.get('homeAway') == 'home')
                 away = next(c['team']['displayName'] for c in competitors if c.get('homeAway') == 'away')
                 neutral = 1 if competitions[0].get('neutralGames', False) else 0
-                
-                partidos.append({
-                    "local": home,
-                    "visitante": away,
-                    "neutral": neutral
-                })
-            except StopIteration:
-                continue
+                partidos.append({"local": home, "visitante": away, "neutral": neutral})
+            except StopIteration: continue
         return partidos
     except Exception as e:
-        print(f"Advertencia: No se pudo conectar a ESPN ({e}). Cargando amistosos de prueba.")
+        print(f"Advertencia ESPN: {e}")
         return []
 
 def obtener_cuotas_the_odds():
-    """Extrae las cuotas vigentes para amistosos usando ODDS_API_KEY"""
+    """Extrae las cuotas vigentes del mercado e imprime diagnóstico en consola"""
     if not ODDS_API_KEY:
-        print("-> Alerta: ODDS_API_KEY no configurada. Saltando consulta de cuotas.")
+        print("-> Error: ODDS_API_KEY vacía en el entorno de ejecución.")
         return {}
         
-    print(f"-> Consultando The Odds API para: {SPORT_KEY}...")
+    print(f"-> Conectando a The Odds API (Filtro: {SPORT_KEY})...")
     url = f"https://api.the-odds-api.com/v4/sports/{SPORT_KEY}/odds/"
     params = {
         'apiKey': ODDS_API_KEY,
@@ -66,10 +55,20 @@ def obtener_cuotas_the_odds():
     
     try:
         response = requests.get(url, params=params, timeout=10)
+        print(f"-> Respuesta de API de Cuotas: Status {response.status_code}")
+        
         if response.status_code == 200:
             odds_data = response.json()
-            cuotas_mapeadas = {}
+            print(f"-> Éxito: Se recuperaron {len(odds_data)} partidos con cuotas activas en el mercado.")
             
+            # Mostrar los primeros 2 partidos de la API en la consola de GitHub para auditar nombres
+            if odds_data:
+                print("--- AUDITORÍA DE NOMBRES EN LA API ---")
+                for m in odds_data[:2]:
+                    print(f" Disponible en API -> Local: '{m.get('home_team')}' vs Visitante: '{m.get('away_team')}'")
+                print("--------------------------------------")
+                
+            cuotas_mapeadas = {}
             for match in odds_data:
                 home_team = match.get('home_team', '')
                 away_team = match.get('away_team', '')
@@ -83,32 +82,42 @@ def obtener_cuotas_the_odds():
                     for outcome in outcomes:
                         name = outcome.get('name', '')
                         price = outcome.get('price', 'N/D')
-                        if name == home_team:
-                            odds_dict['cuota_local'] = price
-                        elif name == away_team:
-                            odds_dict['cuota_visitante'] = price
-                        elif name.lower() in ['draw', 'empate']:
-                            odds_dict['cuota_empate'] = price
+                        if name == home_team: odds_dict['cuota_local'] = price
+                        elif name == away_team: odds_dict['cuota_visitante'] = price
+                        elif name.lower() in ['draw', 'empate']: odds_dict['cuota_empate'] = price
                             
-                    # Llave de cruce en minúsculas
+                    # Guardamos la llave normalizada
                     key = f"{home_team.lower()}_{away_team.lower()}"
                     cuotas_mapeadas[key] = odds_dict
             return cuotas_mapeadas
-        elif response.status_code == 404:
-            print(f"-> La clave '{SPORT_KEY}' no devolvió mercados activos en este instante.")
-            return {}
         else:
-            print(f"Error en API (Status {response.status_code}): {response.text}")
+            print(f"-> Error devuelto por el servidor de cuotas: {response.text}")
             return {}
     except Exception as e:
-        print(f"Error de conexión con The Odds API: {e}")
+        print(f"-> Fallo crítico de conexión con la API: {e}")
         return {}
 
-def ejecutar_sistema_prediccion():
-    print("=== [BGLogicSolutions] Pipeline de Amistosos Internacionales ===")
+def buscar_cuota_flexible(local, visitante, diccionario_cuotas):
+    """Busca cuotas resolviendo variaciones idiomáticas básicas (ej: México vs Mexico)"""
+    # 1. Intento de coincidencia exacta en minúsculas
+    key_directa = f"{local.lower()}_{visitante.lower()}"
+    if key_directa in diccionario_cuotas:
+        return diccionario_cuotas[key_directa]
+        
+    # 2. Búsqueda por sub-cadena (tolerancia a traducciones como USA/Estados Unidos o tildes)
+    for key, cuotas in diccionario_cuotas.items():
+        api_local, api_visitante = key.split('_')
+        # Si el nombre de ESPN está contenido en la API o viceversa
+        if (local.lower() in api_local or api_local in local.lower()) or \
+           (visitante.lower() in api_visitante or api_visitante in visitante.lower()):
+            return cuotas
+            
+    return {"cuota_local": "N/D", "cuota_empate": "N/D", "cuota_visitante": "N/D"}
 
-    # 1. HISTÓRICO DE ENTRENAMIENTO (Partidos de preparación previos)
-    # Puedes ampliar este diccionario con los resultados reales de los últimos amistosos
+def ejecutar_sistema_prediccion():
+    print("=== [BGLogicSolutions] Iniciando Pipeline de Predicción Analítica ===")
+
+    # 1. HISTÓRICO DE ENTRENAMIENTO
     data_historica = {
         'home_team': ['México', 'Estados Unidos', 'Argentina', 'Brasil', 'Colombia', 'España', 'Alemania', 'México', 'Francia', 'Argentina'],
         'away_team': ['Estados Unidos', 'Colombia', 'Brasil', 'México', 'Alemania', 'Brasil', 'Francia', 'Argentina', 'Chile', 'Ecuador'],
@@ -118,39 +127,36 @@ def ejecutar_sistema_prediccion():
     }
     df = pd.DataFrame(data_historica)
 
-    # 2. CONSUMO DE DATOS EN VIVO
+    # 2. CONSUMO DE DATOS
     partidos_nuevos = obtener_partidos_espn()
-    if not partidos_nuevos:
-        # Cartelera de respaldo por si no hay amistosos jugándose en las próximas horas
-        partidos_nuevos = [
-            {"local": "México", "visitante": "Estados Unidos", "neutral": 1},
-            {"local": "Argentina", "visitante": "Brasil", "neutral": 1},
-            {"local": "Francia", "visitante": "Alemania", "neutral": 0}
-        ]
-    
     cuotas_reales = obtener_cuotas_the_odds()
 
-    # 3. LABEL ENCODING GENERALE DE SELECCIONES
+    # Si ESPN no tiene partidos hoy, forzamos una cartelera de prueba
+    if not partidos_nuevos:
+        print("-> Usando cartelera de simulación para el reporte.")
+        partidos_nuevos = [
+            {"local": "México", "visitante": "Estados Unidos", "neutral": 1},
+            {"local": "Argentina", "visitante": "Brasil", "neutral": 1}
+        ]
+
+    # 3. PROCESAMIENTO MATEMÁTICO (Label Encoding)
     le = LabelEncoder()
     todas_las_selecciones = list(set(
         df['home_team'].tolist() + df['away_team'].tolist() + 
         [p['local'] for p in partidos_nuevos] + [p['visitante'] for p in partidos_nuevos]
     ))
     le.fit(todas_las_selecciones)
-    
     df['home_encoded'] = le.transform(df['home_team'])
     df['away_encoded'] = le.transform(df['away_team'])
 
-    # 4. ENTRENAMIENTO DE LOS MODELOS REPLICADOS DEL VIDEO
+    # 4. ENTRENAMIENTO DE MODELOS
     X = df[['home_encoded', 'away_encoded', 'neutral']]
-    
     rf_home = RandomForestRegressor(n_estimators=100, random_state=42).fit(X, df['home_score'])
     rf_away = RandomForestRegressor(n_estimators=100, random_state=42).fit(X, df['away_score'])
-    
     svr_home = SVR(kernel='rbf', C=1.0, epsilon=0.2).fit(X, df['home_score'])
     svr_away = SVR(kernel='rbf', C=1.0, epsilon=0.2).fit(X, df['away_score'])
 
-    # 5. GENERACIÓN DEL REPORTE
+    # 5. CONSTRUCCIÓN DEL REPORTE
     lineas_reporte = [
         "==========================================================",
         " REPORTE: AMISTOSOS RUMBO AL MUNDIAL 2026 (IA + ODDS)    ",
@@ -166,26 +172,23 @@ def ejecutar_sistema_prediccion():
         id_v = le.transform([vis])[0]
         input_data = pd.DataFrame([[id_l, id_v, neu]], columns=['home_encoded', 'away_encoded', 'neutral'])
         
-        # Inferencia matemática
         g_l_rf = int(np.round(rf_home.predict(input_data)[0]))
         g_v_rf = int(np.round(rf_away.predict(input_data)[0]))
-        
         g_l_svr = int(np.round(svr_home.predict(input_data)[0]))
         g_v_svr = int(np.round(svr_away.predict(input_data)[0]))
 
-        # Mapeo de nombres para emparejar las cuotas de las apuestas
-        key_busqueda = f"{loc.lower()}_{vis.lower()}"
-        cuotas = cuotas_reales.get(key_busqueda, {"cuota_local": "N/D", "cuota_empate": "N/D", "cuota_visitante": "N/D"})
+        # Aplicamos la nueva búsqueda flexible para evitar el bloqueo por idiomas o tildes
+        cuotas = buscar_cuota_flexible(loc, vis, cuotas_reales)
 
         lineas_reporte.append(f"PARTIDO: {loc} vs {vis} (Neutral: {'Sí' if neu==1 else 'No'})")
         lineas_reporte.append(f"  [Random Forest] Predicción Goles: {g_l_rf} - {g_v_rf}")
         lineas_reporte.append(f"  [SVR Machine]  Predicción Goles: {g_l_svr} - {g_v_svr}")
-        lineas_reporte.append(f"  [Cuotas Mercado] Local: {cuotas['cuota_local']} | Empate: {cuotas['cuota_empate']} | Visitante: {cuotas['cuota_visitante']}")
+        lineas_reporte.append(f"  [Cuotas Odds API] Local: {cuotas['cuota_local']} | Empate: {cuotas['cuota_empate']} | Visitante: {cuotas['cuota_visitante']}")
         lineas_reporte.append("-" * 55)
 
     with open("predicciones_reporte.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(lineas_reporte))
-    print("-> Archivo 'predicciones_reporte.txt' actualizado sin errores.")
+    print("-> Proceso completado con éxito. Reporte guardado.")
 
 if __name__ == "__main__":
     ejecutar_sistema_prediccion()
