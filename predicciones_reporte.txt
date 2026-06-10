@@ -1,19 +1,9 @@
-==================================================
-  REPORTE AUTÓNOMO DE PREDICCIONES GENERADAS      
-==================================================
+==========================================================
+  REPORTE INTEGRADO: MODELOS IA + CUOTAS EN VIVO (ESPN)   
+==========================================================
 
-Partido: Argentina vs Brasil (Campo Neutral: Sí)
-  [Random Forest] Marcador Estimado: 1 - 1
-  [SVR Machine]  Marcador Estimado: 2 - 1
-
-Partido: Colombia vs Uruguay (Campo Neutral: No)
-  [Random Forest] Marcador Estimado: 1 - 1
-  [SVR Machine]  Marcador Estimado: 2 - 1
-
-Partido: Chile vs Ecuador (Campo Neutral: No)
-  [Random Forest] Marcador Estimado: 3 - 0
-  [SVR Machine]  Marcador Estimado: 2 - 1
-
-Partido: Uruguay vs Argentina (Campo Neutral: No)
-  [Random Forest] Marcador Estimado: 1 - 2
-  [SVR Machine]  Marcador Estimado: 1 - 2
+PARTIDO: Pumas UNAM vs Cruz Azul
+  [Random Forest] Predicción: 1 - 1
+  [SVR Machine]  Predicción: 1 - 1
+  [Cuotas Odds API] Local: N/D | Empate: N/D | Visitante: N/D
+-------------------------------------------------------
